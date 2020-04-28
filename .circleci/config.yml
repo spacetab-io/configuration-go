@@ -8,12 +8,6 @@ jobs:
     docker:
       - image: circleci/golang:1.14
     parallelism: 4
-    environment: # environment variables for the build itself
-      - IN_CONTAINER: true
-
-    # directory where steps are run. Path must conform to the Go Workspace requirements
-    working_directory: /configuration-go
-
     steps:
       - checkout
       - run: go mod vendor
@@ -24,13 +18,7 @@ jobs:
       - run:
           name: tests
           command: |
-            sudo mkdir -p /cfgs/defaults
-            sudo mkdir -p /cfgs/development
-            sudo chown -R circleci:circleci /cfgs
-            ln -s ${CIRCLE_WORKING_DIRECTORY}/test/configuration/defaults/* /cfgs/defaults/
-            ln -s ${CIRCLE_WORKING_DIRECTORY}/test/configuration/development/* /cfgs/development/
-            go test -coverprofile=c.out
-            go tool cover -html=c.out -o coverage.html
+            make test
             mv coverage.html /tmp/artifacts
             mv c.out /tmp/artifacts
       - store_artifacts:
