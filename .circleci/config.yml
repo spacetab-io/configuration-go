@@ -7,7 +7,6 @@ jobs:
   build:
     docker:
       - image: circleci/golang:1.14
-    parallelism: 4
     steps:
       - checkout
       - run: go mod vendor
