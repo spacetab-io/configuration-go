@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -178,9 +179,37 @@ func TestReadConfigs(t *testing.T) {
 	}
 
 	t.Run("Fail dir not found", func(t *testing.T) {
-
 		_, err := ReadConfigs("")
 		if !assert.Error(t, err) {
+			t.FailNow()
+		}
+	})
+	t.Run("no defaults configs", func(t *testing.T) {
+		_, err := ReadConfigs("./test/no_defaults")
+		if !assert.Error(t, err) {
+			t.FailNow()
+		}
+	})
+	t.Run("merge errors", func(t *testing.T) {
+		_, err := ReadConfigs("./test/merge_error")
+		if !assert.Error(t, err) {
+			t.FailNow()
+		}
+	})
+}
+
+func TestGetEnv(t *testing.T) {
+	t.Run("get env key value", func(t *testing.T) {
+		os.Setenv("KEY", "VALUE")
+		val := GetEnv("KEY", "")
+		if !assert.Equal(t, "VALUE", val) {
+			t.FailNow()
+		}
+	})
+	t.Run("get env key value fallback", func(t *testing.T) {
+		os.Setenv("KEY", "VALUE")
+		val := GetEnv("KEY2", "")
+		if !assert.Equal(t, "", val) {
 			t.FailNow()
 		}
 	})

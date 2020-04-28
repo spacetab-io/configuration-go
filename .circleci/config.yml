@@ -6,14 +6,13 @@ orbs:
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.14
     parallelism: 4
     environment: # environment variables for the build itself
       - IN_CONTAINER: true
-      - GO111MODULE: "on"
 
     # directory where steps are run. Path must conform to the Go Workspace requirements
-    working_directory: /go/src/github.com/microparts/configuration-golang
+    working_directory: /configuration-go
 
     steps:
       - checkout

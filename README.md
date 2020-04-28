@@ -1,25 +1,17 @@
 Golang Microservice configuration module
 ----------------------------------------
 
-[![CircleCI](https://circleci.com/gh/microparts/configuration-golang.svg?style=shield)](https://circleci.com/gh/microparts/configuration-golang) [![codecov](https://codecov.io/gh/microparts/configuration-golang/graph/badge.svg)](https://codecov.io/gh/microparts/configuration-golang)
+[![CircleCI](https://circleci.com/gh/spacetab-io/configuration-go.svg?style=shield)](https://circleci.com/gh/spacetab-io/configuration-go) [![codecov](https://codecov.io/gh/spacetab-io/configuration-go/graph/badge.svg)](https://codecov.io/gh/spacetab-io/configuration-go)
 
 
 Configuration module for microservices written on Go. Preserves [corporate standards for services configuration](https://confluence.teamc.io/pages/viewpage.action?pageId=4227704).
 
 ## Installation
 
-Using `go get`:
-
-    go get github.com/imdario/mergo
-    
-Using `dep`:
-
-    dep ensure -add github.com/microparts/configuration-golang
-
 Import in your configuration file
 
     import (
-        "github.com/microparts/configuration-golang"
+        "github.com/spacetab-io/configuration-go"
     )
      
 
@@ -36,9 +28,10 @@ Code example:
 package main
 
 import (
-	"github.com/microparts/configuration-golang"
-	"gopkg.in/yaml.v2"
 	"log"
+
+	"github.com/spacetab-io/configuration-go"
+	"gopkg.in/yaml.v2"
 )
 
 
@@ -90,7 +83,7 @@ func main() {
 
 The MIT License
 
-Copyright © 2019 teamc.io, Inc. https://teamc.io
+Copyright © 2020 SpaceTab.io, Inc. https://spacetab.io
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

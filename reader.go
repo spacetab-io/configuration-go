@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -17,37 +18,27 @@ func ReadConfigs(cfgPath string) ([]byte, error) {
 	if cfgPath == "" {
 		cfgPath = "./configuration"
 	}
+
 	cfgPath = strings.TrimRight(cfgPath, "/")
 	iSay("Config path: `%v`", cfgPath)
 
 	if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
-		return nil, err
+		return nil, fmt.Errorf("config path stat error: %v", err)
 	}
 
 	stage := getStage()
 
 	var (
-		fileList        = map[string][]string{}
-		stageDir        string
-		configPathDepth int
+		fileList = map[string][]string{}
+		stageDir string
 	)
 
-	err := filepath.Walk(cfgPath, func(path string, f os.FileInfo, err error) error {
-		pathLen := len(strings.Split(path, "/"))
-
+	_ = filepath.Walk(cfgPath, func(path string, f os.FileInfo, err error) error {
 		if cfgPath == path {
-			configPathDepth = pathLen + 1
-			if strings.Contains(cfgPath, "./") {
-				configPathDepth = pathLen
-			}
 			return nil
 		}
 
-		if pathLen > configPathDepth+1 {
-			return filepath.SkipDir
-		}
-
-		if f.IsDir() && pathLen == configPathDepth {
+		if f.IsDir() {
 			stageDir = f.Name()
 			return nil
 		}
@@ -58,29 +49,26 @@ func ReadConfigs(cfgPath string) ([]byte, error) {
 
 		return nil
 	})
-	if err != nil {
-		iSay("Some error while walking through config dir!: `%+v`", err)
-		return nil, err
-	}
 
 	// check defaults config existence. Fall down if not
 	if _, ok := fileList["defaults"]; !ok || len(fileList["defaults"]) == 0 {
-		log.Fatal("[config] defaults config is not found! Fall down.")
+		iSay("defaults config is not found in file list `%+v`! Fall down.", fileList)
+		return nil, fmt.Errorf("no default config")
 	}
 
 	fileListResult := make(map[string][]string)
 	configs := make(map[string]map[string]interface{})
+
 	for folder, files := range fileList {
 		for _, file := range files {
-			configBytes, err := ioutil.ReadFile(cfgPath + "/" + folder + "/" + file)
-			if err != nil {
-				log.Fatalf("[config] Error reading config file %s: %v", cfgPath+"/"+folder+"/"+file, err)
-			}
+			fullFilePath := cfgPath + "/" + folder + "/" + file
+			configBytes, _ := ioutil.ReadFile(fullFilePath)
 
 			var configFromFile map[string]map[string]interface{}
 
-			if err = yaml.Unmarshal(configBytes, &configFromFile); err != nil {
-				log.Fatalf("[config] %s %s config read fail! Fall down.", folder, file)
+			if err := yaml.Unmarshal(configBytes, &configFromFile); err != nil {
+				iSay("[config] %s %s config read fail! Fall down.", folder, file)
+				return nil, fmt.Errorf("config file `%s` read fail", fullFilePath)
 			}
 
 			if _, ok := configFromFile[folder]; !ok {
@@ -94,9 +82,8 @@ func ReadConfigs(cfgPath string) ([]byte, error) {
 			}
 
 			cc := configs[folder]
-			if err := mergo.Merge(&cc, configFromFile[folder], mergo.WithOverride); err != nil {
-				log.Fatalf("[config] merging files in folder error: %s", err)
-			}
+			_ = mergo.Merge(&cc, configFromFile[folder], mergo.WithOverride)
+
 			configs[folder] = cc
 
 			fileListResult[folder] = append(fileListResult[folder], file)
@@ -106,11 +93,10 @@ func ReadConfigs(cfgPath string) ([]byte, error) {
 	iSay("Config files: `%+v`", fileListResult)
 
 	config := configs["defaults"]
+
 	c, ok := configs[stage]
 	if ok {
-		if err := mergo.Merge(&config, c, mergo.WithOverride); err != nil {
-			log.Fatalf("[config] merging error: %s", err)
-		}
+		_ = mergo.Merge(&config, c, mergo.WithOverride)
 
 		iSay("Stage `%s` config is loaded and merged with `defaults`", stage)
 	}
@@ -129,6 +115,7 @@ func iSay(pattern string, args ...interface{}) {
 func getStage() (stage string) {
 	stage = GetEnv("STAGE", "development")
 	iSay("Current stage: `%s`", stage)
+
 	return
 }
 
@@ -137,5 +124,6 @@ func GetEnv(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
 		return value
 	}
+
 	return fallback
 }

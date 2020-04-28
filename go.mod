@@ -1,9 +1,9 @@
-module github.com/microparts/configuration-golang
+module github.com/spacetab-io/configuration-go
 
-go 1.12
+go 1.14
 
 require (
-	github.com/imdario/mergo v0.3.7
-	github.com/stretchr/testify v1.3.0
-	gopkg.in/yaml.v2 v2.2.2
+	github.com/imdario/mergo v0.3.9
+	github.com/stretchr/testify v1.5.1
+	gopkg.in/yaml.v2 v2.2.8
 )

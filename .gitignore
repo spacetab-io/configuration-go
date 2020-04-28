@@ -1,4 +1,7 @@
 coverage.out
 .idea
 vendor
-go-test*
+
+c.out
+coverage.html
+.golangci.yml

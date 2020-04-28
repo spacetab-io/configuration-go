@@ -1,30 +1,26 @@
-IMAGE = golang-pkg-test
-TEST_CONTAINER = docker run --rm -i --name golang-config $(IMAGE)
-
 deps: ## Get the dependencies
 	@go mod vendor
 
-race: ## Run data race detector
-	@go test -race ./...
+## Test stuff
+get_lint_config:
+	@[ -f ./.golangci.yml ] && echo ".golangci.yml exists" || ( echo "getting .golangci.yml" && curl -O https://raw.githubusercontent.com/spacetab-io/docker-images-golang/master/linter/.golangci.yml )
+.PHONY: get_lint_config
 
-tests: ## Run application unit tests with coverage and generate global code coverage report
-	@go test -v ./... -parallel 4 -failfast -cover -coverprofile=c.out
+lint: get_lint_config
+	golangci-lint run -v
+.PHONY: lint
 
-covercli: ## Generate code coverage report
-	@go tool cover -func=c.out
+test-unit:
+	go test ./... --race --cover -count=1 -timeout 1s -coverprofile=c.out -v
+.PHONY: test-unit
 
-coverhtml: ## Generate global code coverage report in HTML
-	@go tool cover -html=c.out -o coverage.html
+coverage-html:
+	go tool cover -html=c.out -o coverage.html
+.PHONE: coverage-html
 
-coverage: tests coverhtml
+test: deps test-unit coverage-html
+.PHONY: test
 
-coverage_cli: tests covercli
-
-image_test:
-	@docker build -f Dockerfile -t $(IMAGE) .
-
-tests_in_docker: image_test ## Testing code with unit tests in docker container
-	$(TEST_CONTAINER) make coverage_cli
-
-race_in_docker:
-	@$(TEST_CONTAINER) make race
+tests_in_docker: ## Testing code with unit tests in docker container
+	docker run --rm -v $(shell pwd):/app -i spacetabio/docker-test-golang:1.14-1.0.2 make test
+.PHONY: tests_in_docker
