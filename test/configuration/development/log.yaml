@@ -1,0 +1,4 @@
+development:
+  log:
+    level: "error"
+    format: "text"

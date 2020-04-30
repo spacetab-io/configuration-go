@@ -3,5 +3,5 @@ defaults:
   log:
     level: "warn"
     format: "json"
-  host: "localhost"
-  port: "8080"
+  host: "127.0.0.1"
+  port: "8888"

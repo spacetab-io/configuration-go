@@ -37,9 +37,9 @@ func TestRelativePath(t *testing.T) {
 			Log: struct {
 				Level  string `yaml:"level"`
 				Format string `yaml:"format"`
-			}{Level: "warn", Format: "json"},
-			Host: "localhost",
-			Port: "8080",
+			}{Level: "error", Format: "text"},
+			Host: "127.0.0.1",
+			Port: "8888",
 		}
 
 		assert.EqualValues(t, refConfig, config)

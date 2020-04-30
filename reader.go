@@ -56,6 +56,8 @@ func ReadConfigs(cfgPath string) ([]byte, error) {
 		return nil, fmt.Errorf("no default config")
 	}
 
+	iSay("Existing config list: %+v", fileList)
+
 	fileListResult := make(map[string][]string)
 	configs := make(map[string]map[string]interface{})
 
@@ -76,9 +78,10 @@ func ReadConfigs(cfgPath string) ([]byte, error) {
 				continue
 			}
 
+			//iSay("file `%s` in folder `%s` config: %+v", file, folder, configFromFile[folder])
+
 			if _, ok := configs[folder]; !ok {
 				configs[folder] = configFromFile[folder]
-				continue
 			}
 
 			cc := configs[folder]
@@ -90,17 +93,17 @@ func ReadConfigs(cfgPath string) ([]byte, error) {
 		}
 	}
 
-	iSay("Config files: `%+v`", fileListResult)
+	iSay("Parsed config list: `%+v`", fileListResult)
 
 	config := configs["defaults"]
 
-	c, ok := configs[stage]
-	if ok {
-		_ = mergo.Merge(&config, c, mergo.WithOverride)
-
-		iSay("Stage `%s` config is loaded and merged with `defaults`", stage)
+	if c, ok := configs[stage]; ok {
+		if err := mergo.Merge(&config, c, mergo.WithOverride); err == nil {
+			iSay("Stage `%s` config is loaded and merged with `defaults`", stage)
+		}
 	}
 
+	//iSay("Resulted config: `%+v`", config)
 	return yaml.Marshal(config)
 }
 
