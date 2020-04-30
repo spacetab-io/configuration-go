@@ -13,7 +13,7 @@ import (
 func TestRelativePath(t *testing.T) {
 	t.Run("Success parsing relative dirs", func(t *testing.T) {
 		os.Setenv("STAGE", "dev")
-		configBytes, err := config.ReadConfigs("../../../../test/configuration")
+		configBytes, err := config.ReadConfigs("../../../../config_examples/configuration")
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}

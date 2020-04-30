@@ -21,8 +21,8 @@ jobs:
           command: |
             sudo mkdir -p /cfgs/defaults
             sudo mkdir -p /cfgs/dev
-            sudo cp test/configuration/defaults/* /cfgs/defaults
-            sudo cp test/configuration/dev/* /cfgs/dev
+            sudo cp config_examples/configuration/defaults/* /cfgs/defaults
+            sudo cp config_examples/configuration/dev/* /cfgs/dev
             make test
             mv coverage.html /tmp/artifacts
             mv c.out /tmp/artifacts

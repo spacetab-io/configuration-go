@@ -11,7 +11,7 @@ import (
 func TestReadConfigs(t *testing.T) {
 	t.Run("Success parsing common dirs and files", func(t *testing.T) {
 		os.Setenv("STAGE", "dev")
-		configBytes, err := ReadConfigs("./test/configuration")
+		configBytes, err := ReadConfigs("./config_examples/configuration")
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
@@ -46,7 +46,7 @@ func TestReadConfigs(t *testing.T) {
 	})
 	t.Run("Success parsing complex dirs and files", func(t *testing.T) {
 		os.Setenv("STAGE", "development")
-		configBytes, err := ReadConfigs("./test/configuration2")
+		configBytes, err := ReadConfigs("./config_examples/configuration2")
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
@@ -110,7 +110,7 @@ func TestReadConfigs(t *testing.T) {
 
 	t.Run("Success parsing symlinked files and dirs", func(t *testing.T) {
 		os.Setenv("STAGE", "dev")
-		configBytes, err := ReadConfigs("./test/symnlinkedConfigs")
+		configBytes, err := ReadConfigs("./config_examples/symnlinkedConfigs")
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
@@ -189,13 +189,13 @@ func TestReadConfigs(t *testing.T) {
 		}
 	})
 	t.Run("no defaults configs", func(t *testing.T) {
-		_, err := ReadConfigs("./test/no_defaults")
+		_, err := ReadConfigs("./config_examples/no_defaults")
 		if !assert.Error(t, err) {
 			t.FailNow()
 		}
 	})
 	t.Run("merge errors", func(t *testing.T) {
-		_, err := ReadConfigs("./test/merge_error")
+		_, err := ReadConfigs("./config_examples/merge_error")
 		if !assert.Error(t, err) {
 			t.FailNow()
 		}
