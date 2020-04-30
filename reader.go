@@ -12,6 +12,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const defaultStage = "defaults"
+
 // ReadConfigs Reads yaml files from configuration directory with sub folders
 // as application stage and merges config files in one configuration per stage
 func ReadConfigs(cfgPath string) ([]byte, error) {
@@ -38,12 +40,12 @@ func ReadConfigs(cfgPath string) ([]byte, error) {
 			return nil
 		}
 
-		if f.IsDir() {
+		if f.IsDir() && (stageDir == "" || stageDir == defaultStage) {
 			stageDir = f.Name()
 			return nil
 		}
 
-		if filepath.Ext(f.Name()) == ".yaml" && (stageDir == "defaults" || stageDir == stage) {
+		if filepath.Ext(f.Name()) == ".yaml" && (stageDir == defaultStage || stageDir == stage) {
 			fileList[stageDir] = append(fileList[stageDir], f.Name())
 		}
 
@@ -51,7 +53,7 @@ func ReadConfigs(cfgPath string) ([]byte, error) {
 	})
 
 	// check defaults config existence. Fall down if not
-	if _, ok := fileList["defaults"]; !ok || len(fileList["defaults"]) == 0 {
+	if _, ok := fileList[defaultStage]; !ok || len(fileList[defaultStage]) == 0 {
 		iSay("defaults config is not found in file list `%+v`! Fall down.", fileList)
 		return nil, fmt.Errorf("no default config")
 	}
@@ -78,8 +80,6 @@ func ReadConfigs(cfgPath string) ([]byte, error) {
 				continue
 			}
 
-			//iSay("file `%s` in folder `%s` config: %+v", file, folder, configFromFile[folder])
-
 			if _, ok := configs[folder]; !ok {
 				configs[folder] = configFromFile[folder]
 			}
@@ -95,7 +95,7 @@ func ReadConfigs(cfgPath string) ([]byte, error) {
 
 	iSay("Parsed config list: `%+v`", fileListResult)
 
-	config := configs["defaults"]
+	config := configs[defaultStage]
 
 	if c, ok := configs[stage]; ok {
 		if err := mergo.Merge(&config, c, mergo.WithOverride); err == nil {
@@ -103,7 +103,6 @@ func ReadConfigs(cfgPath string) ([]byte, error) {
 		}
 	}
 
-	//iSay("Resulted config: `%+v`", config)
 	return yaml.Marshal(config)
 }
 
@@ -114,7 +113,7 @@ func iSay(pattern string, args ...interface{}) {
 	// }
 }
 
-// getStage Load configuration for stage with fallback to 'development'
+// getStage Load configuration for stage with fallback to 'dev'
 func getStage() (stage string) {
 	stage = GetEnv("STAGE", "development")
 	iSay("Current stage: `%s`", stage)
