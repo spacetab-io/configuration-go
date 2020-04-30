@@ -10,6 +10,7 @@ import (
 
 func TestReadConfigs(t *testing.T) {
 	t.Run("Success parsing common dirs and files", func(t *testing.T) {
+		os.Setenv("STAGE", "dev")
 		configBytes, err := ReadConfigs("./test/configuration")
 		if !assert.NoError(t, err) {
 			t.FailNow()
@@ -44,6 +45,7 @@ func TestReadConfigs(t *testing.T) {
 		assert.EqualValues(t, refConfig, config)
 	})
 	t.Run("Success parsing complex dirs and files", func(t *testing.T) {
+		os.Setenv("STAGE", "development")
 		configBytes, err := ReadConfigs("./test/configuration2")
 		if !assert.NoError(t, err) {
 			t.FailNow()
@@ -107,6 +109,7 @@ func TestReadConfigs(t *testing.T) {
 	})
 
 	t.Run("Success parsing symlinked files and dirs", func(t *testing.T) {
+		os.Setenv("STAGE", "dev")
 		configBytes, err := ReadConfigs("./test/symnlinkedConfigs")
 		if !assert.NoError(t, err) {
 			t.FailNow()
@@ -133,13 +136,51 @@ func TestReadConfigs(t *testing.T) {
 			Log: struct {
 				Level  string `yaml:"level"`
 				Format string `yaml:"format"`
-			}{Level: "warn", Format: "json"},
+			}{Level: "error", Format: "text"},
 			Host: "127.0.0.1",
 			Port: "8888",
 		}
 
 		assert.EqualValues(t, refConfig, config)
 	})
+
+	if GetEnv("IN_CONTAINER", "") == "true" {
+		t.Run("Success parsing symlinked files and dirs in root", func(t *testing.T) {
+			os.Setenv("STAGE", "dev")
+			configBytes, err := ReadConfigs("/cfgs")
+			if !assert.NoError(t, err) {
+				t.FailNow()
+			}
+
+			type cfg struct {
+				Debug bool `yaml:"debug"`
+				Log   struct {
+					Level  string `yaml:"level"`
+					Format string `yaml:"format"`
+				} `yaml:"log"`
+				Host string `yaml:"host"`
+				Port string `yaml:"port"`
+			}
+
+			config := &cfg{}
+			err = yaml.Unmarshal(configBytes, &config)
+			if !assert.NoError(t, err) {
+				t.FailNow()
+			}
+
+			refConfig := &cfg{
+				Debug: true,
+				Log: struct {
+					Level  string `yaml:"level"`
+					Format string `yaml:"format"`
+				}{Level: "error", Format: "text"},
+				Host: "127.0.0.1",
+				Port: "8888",
+			}
+
+			assert.EqualValues(t, refConfig, config)
+		})
+	}
 
 	t.Run("Fail dir not found", func(t *testing.T) {
 		_, err := ReadConfigs("")

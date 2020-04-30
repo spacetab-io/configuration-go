@@ -1,6 +1,7 @@
 package thedeepest
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,6 +12,7 @@ import (
 
 func TestRelativePath(t *testing.T) {
 	t.Run("Success parsing relative dirs", func(t *testing.T) {
+		os.Setenv("STAGE", "dev")
 		configBytes, err := config.ReadConfigs("../../../../test/configuration")
 		if !assert.NoError(t, err) {
 			t.FailNow()
