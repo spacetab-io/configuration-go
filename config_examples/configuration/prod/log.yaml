@@ -1,0 +1,4 @@
+prod:
+  log:
+    level: "error"
+    format: "text"

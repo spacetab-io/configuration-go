@@ -40,8 +40,11 @@ func ReadConfigs(cfgPath string) ([]byte, error) {
 			return nil
 		}
 
-		if f.IsDir() && (stageDir == "" || stageDir == defaultStage) {
+		if stageDir == "" || f.Name() == defaultStage || f.Name() == stage {
 			stageDir = f.Name()
+		}
+
+		if f.IsDir() {
 			return nil
 		}
 
