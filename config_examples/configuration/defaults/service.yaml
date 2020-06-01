@@ -5,4 +5,5 @@ defaults:
     format: "json"
   host: "127.0.0.1"
   port: "8888"
-  string_value: string
+  string_test: string
+  bool_test: true

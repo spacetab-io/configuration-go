@@ -24,7 +24,8 @@ func TestReadConfigs(t *testing.T) {
 			} `yaml:"log"`
 			Host        string `yaml:"host"`
 			Port        string `yaml:"port"`
-			StringValue string `yaml:"string_value"`
+			StringValue string `yaml:"string_test"`
+			BoolValue   bool   `yaml:"bool_test"`
 		}
 
 		config := &cfg{}
@@ -42,6 +43,7 @@ func TestReadConfigs(t *testing.T) {
 			Host:        "127.0.0.1",
 			Port:        "8888",
 			StringValue: "",
+			BoolValue:   false,
 		}
 
 		assert.EqualValues(t, refConfig, config)
