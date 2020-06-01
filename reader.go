@@ -88,7 +88,7 @@ func ReadConfigs(cfgPath string) ([]byte, error) {
 			}
 
 			cc := configs[folder]
-			_ = mergo.Merge(&cc, configFromFile[folder], mergo.WithOverride)
+			_ = mergo.Merge(&cc, configFromFile[folder], mergo.WithOverwriteWithEmptyValue)
 
 			configs[folder] = cc
 
@@ -101,7 +101,7 @@ func ReadConfigs(cfgPath string) ([]byte, error) {
 	config := configs[defaultStage]
 
 	if c, ok := configs[stage]; ok {
-		if err := mergo.Merge(&config, c, mergo.WithOverride); err == nil {
+		if err := mergo.Merge(&config, c, mergo.WithOverwriteWithEmptyValue); err == nil {
 			iSay("Stage `%s` config is loaded and merged with `defaults`", stage)
 		}
 	}

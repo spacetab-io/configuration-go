@@ -22,8 +22,9 @@ func TestReadConfigs(t *testing.T) {
 				Level  string `yaml:"level"`
 				Format string `yaml:"format"`
 			} `yaml:"log"`
-			Host string `yaml:"host"`
-			Port string `yaml:"port"`
+			Host        string `yaml:"host"`
+			Port        string `yaml:"port"`
+			StringValue string `yaml:"string_value"`
 		}
 
 		config := &cfg{}
@@ -38,8 +39,9 @@ func TestReadConfigs(t *testing.T) {
 				Level  string `yaml:"level"`
 				Format string `yaml:"format"`
 			}{Level: "error", Format: "text"},
-			Host: "127.0.0.1",
-			Port: "8888",
+			Host:        "127.0.0.1",
+			Port:        "8888",
+			StringValue: "",
 		}
 
 		assert.EqualValues(t, refConfig, config)
