@@ -40,12 +40,13 @@ func ReadConfigs(cfgPath string) ([]byte, error) {
 			return nil
 		}
 
-		if stageDir == "" || f.Name() == defaultStage || f.Name() == stage {
-			stageDir = f.Name()
-		}
-
 		if f.IsDir() {
-			return nil
+			if stageDir == "" || f.Name() == defaultStage || f.Name() == stage {
+				stageDir = f.Name()
+				return nil
+			} else {
+				return filepath.SkipDir
+			}
 		}
 
 		if filepath.Ext(f.Name()) == ".yaml" && (stageDir == defaultStage || stageDir == stage) {
