@@ -31,7 +31,7 @@ import (
 	"log"
 
 	"github.com/spacetab-io/configuration-go"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 

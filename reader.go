@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/imdario/mergo"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 const defaultStage = "defaults"
@@ -44,9 +44,9 @@ func ReadConfigs(cfgPath string) ([]byte, error) {
 			if stageDir == "" || f.Name() == defaultStage || f.Name() == stage {
 				stageDir = f.Name()
 				return nil
-			} else {
-				return filepath.SkipDir
 			}
+
+			return filepath.SkipDir
 		}
 
 		if filepath.Ext(f.Name()) == ".yaml" && (stageDir == defaultStage || stageDir == stage) {
