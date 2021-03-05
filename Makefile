@@ -10,16 +10,22 @@ lint: get_lint_config
 	golangci-lint run -v
 .PHONY: lint
 
+# ----
+## TEST stuff start
+
 test-unit:
-	go test ./... --race --cover -count=1 -timeout 1s -coverprofile=c.out -v
+	go test -cover -race -count=1 -timeout 1s -coverprofile=c.out -v ./... && go tool cover -func=c.out
 .PHONY: test-unit
 
 coverage-html:
 	go tool cover -html=c.out -o coverage.html
-.PHONE: coverage-html
+.PHONY: coverage-html
 
 test: deps test-unit coverage-html
 .PHONY: test
+
+## TEST stuff end
+# ----
 
 tests_in_docker: ## Testing code with unit tests in docker container
 	docker run --rm -v $(shell pwd):/app -i spacetabio/docker-test-golang:1.14-1.0.2 make test

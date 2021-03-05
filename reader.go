@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/imdario/mergo"
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 )
 
 const defaultStage = "defaults"
@@ -74,8 +74,10 @@ func ReadConfigs(cfgPath string) ([]byte, error) {
 
 			var configFromFile map[string]map[string]interface{}
 
+			iSay("file `%s` content: \n%v", fullFilePath, string(configBytes))
+
 			if err := yaml.Unmarshal(configBytes, &configFromFile); err != nil {
-				iSay("[config] %s %s config read fail! Fall down.", folder, file)
+				iSay("%s %s config read fail! Fall down.", folder, file)
 				return nil, fmt.Errorf("config file `%s` read fail", fullFilePath)
 			}
 
@@ -107,13 +109,15 @@ func ReadConfigs(cfgPath string) ([]byte, error) {
 		}
 	}
 
+	iSay("final config:\n%+v", config)
+
 	return yaml.Marshal(config)
 }
 
 // iSay Logs in stdout when quiet mode is off
 func iSay(pattern string, args ...interface{}) {
 	// if quietMode == false {
-	log.Printf("[config] "+pattern, args...)
+	log.Printf("[config] "+pattern+"\n", args...)
 	// }
 }
 
