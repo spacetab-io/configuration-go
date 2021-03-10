@@ -1,32 +1,36 @@
 deps: ## Get the dependencies
 	@go mod vendor
 
-## Test stuff
-get_lint_config:
-	@[ -f ./.golangci.yml ] && echo ".golangci.yml exists" || ( echo "getting .golangci.yml" && curl -O https://raw.githubusercontent.com/spacetab-io/docker-images-golang/master/linter/.golangci.yml )
-.PHONY: get_lint_config
+# ----
+## LINTER stuff start
 
-lint: get_lint_config
-	golangci-lint run -v
+linter_include_check:
+	@[ -f linter.mk ] && echo "linter.mk include exists" || (echo "getting linter.mk from github.com" && curl -sO https://raw.githubusercontent.com/spacetab-io/makefiles/master/golang/linter.mk)
+
 .PHONY: lint
+lint: linter_include_check
+	@make -f linter.mk go_lint
+
+## LINTER stuff end
+# ----
 
 # ----
-## TEST stuff start
+## TESTS stuff start
 
-test-unit:
-	go test -cover -race -count=1 -timeout 1s -coverprofile=c.out -v ./... && go tool cover -func=c.out
-.PHONY: test-unit
+tests_include_check:
+	@[ -f tests.mk ] && echo "tests.mk include exists" || (echo "getting tests.mk from github.com" && curl -sO https://raw.githubusercontent.com/spacetab-io/makefiles/master/golang/tests.mk)
 
-coverage-html:
-	go tool cover -html=c.out -o coverage.html
-.PHONY: coverage-html
+tests: tests_include_check
+	@make -f tests.mk go_tests
+.PHONY: tests
 
-test: deps test-unit coverage-html
-.PHONY: test
+tests_html: tests_include_check
+	@make -f tests.mk go_tests_html
+.PHONY: tests
 
-## TEST stuff end
+## TESTS stuff end
 # ----
 
 tests_in_docker: ## Testing code with unit tests in docker container
-	docker run --rm -v $(shell pwd):/app -i spacetabio/docker-test-golang:1.14-1.0.2 make test
+	docker run --rm -v $(shell pwd):/app -i spacetabio/docker-test-golang:1.14-1.0.2 make tests
 .PHONY: tests_in_docker

@@ -9,6 +9,6 @@ local:
   bool_test: false
   redis:
     hostname: 127.1.1.1
-    password: "password"
+    password: "very-very-secure-password-with-a-lot-of-words-to-make-sure-that-it-length-is-more-than-100-chars-length"
     database: 123
     port: 321

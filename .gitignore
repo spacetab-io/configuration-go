@@ -1,7 +1,9 @@
 coverage.out
 .idea
 vendor
-
+bin
 c.out
 coverage.html
 .golangci.yml
+linter.mk
+tests.mk

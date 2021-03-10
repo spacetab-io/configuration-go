@@ -3,40 +3,46 @@ Golang Microservice configuration module
 
 [![CircleCI](https://circleci.com/gh/spacetab-io/configuration-go.svg?style=shield)](https://circleci.com/gh/spacetab-io/configuration-go) [![codecov](https://codecov.io/gh/spacetab-io/configuration-go/graph/badge.svg)](https://codecov.io/gh/spacetab-io/configuration-go)
 
-
-Configuration module for microservices written on Go. Preserves [corporate standards for services configuration](https://confluence.teamc.io/pages/viewpage.action?pageId=4227704).
+Configuration module for microservices written on Go.
+Preserves [corporate standards for services configuration](https://confluence.teamc.io/pages/viewpage.action?pageId=4227704).
 
 ## Installation
 
 Import in your configuration file
 
-    import (
-        "github.com/spacetab-io/configuration-go"
-    )
-     
+```go
+package main
+
+import (
+	config "github.com/spacetab-io/configuration-go"
+)
+
+```
 
 ## Usage
 
 Some agreements:
+
 1. Configuration must be declared as struct and reveals yaml structure
 2. Default config folder: `./configuration`. If you need to override, pass your path in `ReadConfig` function
-3. Default stage is `development`. To override, set `STAGE` env variable
- 
+3. Stage is passed as `stage.Interface` implementation. In example below stageEnv is used to pass stage through env variable `STAGE`.
+
 Code example:
 
 ```go
 package main
 
 import (
+	"fmt"
 	"log"
 
-	"github.com/spacetab-io/configuration-go"
+	config "github.com/spacetab-io/configuration-go"
+	"github.com/spacetab-io/configuration-go/stage"
 	"gopkg.in/yaml.v2"
 )
 
-
-// Your app config structure. This must be related to yaml config file structure. Everything that is not
-// in this struct will be passed and will not be processed.
+// ConfigStruct is your app config structure. This must be related to yaml config file structure. 
+// Everything that is not in this struct will be passed and will not be processed.
 // Keep in mind that inheritance must be implemented with `struct{}`
 type ConfigStruct struct {
 	Log struct {
@@ -62,20 +68,24 @@ type ConfigStruct struct {
 }
 
 func main() {
-	// Reader accept config path as param. Commonly it stored like STAGE in ENV.
-	configPath := config.GetEnv("CONFIG_PATH", "./configuration")
+	// config.Read receives stage as stage.Interface implementation.
+	// You can use envStage to pass stage name via ENV param STAGE.
+	// In NewEnvStage you can pass fallback value if STAGE param is empty.
+	envStage := stage.NewEnvStage("development")
 	// Reading ALL config files in defaults configuration folder and recursively merge them with STAGE configs
-	configBytes, err := config.ReadConfigs(configPath)
+	configBytes, err := config.Read(envStage, "./configuration", true)
 	if err != nil {
 		log.Fatalf("config reading error: %+v", err)
 	}
 
-    var Config ConfigStruct 
-    // unmarshal config into Config structure 
-	err = yaml.Unmarshal(configBytes, &Config)
+	cfg := ConfigStruct{}
+	// unmarshal config into Config structure 
+	err = yaml.Unmarshal(configBytes, &cfg)
 	if err != nil {
-        log.Fatalf("config unmarshal error: %+v", err)
-    }
+		log.Fatalf("config unmarshal error: %+v", err)
+	}
+
+	fmt.Printf("config: %+v", cfg)
 } 
 ```
 
@@ -83,22 +93,16 @@ func main() {
 
 The MIT License
 
-Copyright © 2020 SpaceTab.io, Inc. https://spacetab.io
+Copyright © 2021 SpaceTab.io, Inc. https://spacetab.io
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "
+Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+following conditions:
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
