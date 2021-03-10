@@ -1,0 +1,14 @@
+local:
+  log:
+    level: "debug"
+    format: "русский мат"
+  debug: true
+  port: "6666"
+  host: "0.0.0.0"
+  string_test: not a simple string
+  bool_test: false
+  redis:
+    hostname: 127.1.1.1
+    password: "very-very-secure-password-with-a-lot-of-words-to-make-sure-that-it-length-is-more-than-100-chars-length"
+    database: 123
+    port: 321

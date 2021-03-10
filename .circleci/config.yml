@@ -8,7 +8,7 @@ jobs:
     docker:
       - image: circleci/golang:1.14
     environment:
-      - IN_CONTAINER: true
+      IN_CONTAINER: true
     steps:
       - checkout
       - run: go mod vendor
@@ -23,7 +23,7 @@ jobs:
             sudo mkdir -p /cfgs/dev
             sudo cp config_examples/configuration/defaults/* /cfgs/defaults
             sudo cp config_examples/configuration/dev/* /cfgs/dev
-            make test
+            make tests_html
             mv coverage.html /tmp/artifacts
             mv c.out /tmp/artifacts
       - store_artifacts:

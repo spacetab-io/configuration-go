@@ -1,19 +1,20 @@
-package thedeepest
+package thedeepest_test
 
 import (
-	"os"
 	"testing"
 
+	config "github.com/spacetab-io/configuration-go"
+	"github.com/spacetab-io/configuration-go/tests"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v2"
-
-	config "github.com/spacetab-io/configuration-go"
 )
 
 func TestRelativePath(t *testing.T) {
+	t.Parallel()
 	t.Run("Success parsing relative dirs", func(t *testing.T) {
-		os.Setenv("STAGE", "dev")
-		configBytes, err := config.ReadConfigs("../../../../config_examples/configuration")
+		t.Parallel()
+		tStage := tests.NewTestStage("dev")
+		configBytes, err := config.Read(tStage, "../../../../config_examples/configuration", false)
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
@@ -28,8 +29,8 @@ func TestRelativePath(t *testing.T) {
 			Port string `yaml:"port"`
 		}
 
-		config := &cfg{}
-		err = yaml.Unmarshal(configBytes, &config)
+		conf := &cfg{}
+		err = yaml.Unmarshal(configBytes, &conf)
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
@@ -44,6 +45,6 @@ func TestRelativePath(t *testing.T) {
 			Port: "8888",
 		}
 
-		assert.EqualValues(t, refConfig, config)
+		assert.EqualValues(t, refConfig, conf)
 	})
 }

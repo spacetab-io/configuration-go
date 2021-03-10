@@ -1,0 +1,25 @@
+defaults:
+  db:
+    driver: postgres
+    connections:
+      - host: 127.0.0.1
+        port: 5432
+        action: read
+      - host: 127.0.0.1
+        port: 5433
+        action: write
+    user: postgres
+    password: ""
+    schema: public
+    name: database_name
+    ssl_mode: disable
+    extensions:
+      - hstore
+    max_idle_connections: 0
+    max_open_connections: 5
+    connection_lifetime: 30m
+    seeds_path: ./db/seeds/
+    migrations_path: ./db/migrations/
+    migrations_table: migrations
+    migrate_on_start: false
+    debug: true

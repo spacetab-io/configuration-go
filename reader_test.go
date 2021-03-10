@@ -1,35 +1,40 @@
-package config
+package config_test
 
 import (
 	"os"
 	"testing"
 
+	config "github.com/spacetab-io/configuration-go"
+	"github.com/spacetab-io/configuration-go/tests"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v2"
 )
 
 func TestReadConfigs(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Success parsing common dirs and files", func(t *testing.T) {
-		os.Setenv("STAGE", "dev")
-		configBytes, err := ReadConfigs("./config_examples/configuration")
+		t.Parallel()
+		tStage := tests.NewTestStage("dev")
+		configBytes, err := config.Read(tStage, "./config_examples/configuration", false)
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
 
 		type cfg struct {
-			Debug bool `yaml:"debug"`
-			Log   struct {
+			Log struct {
 				Level  string `yaml:"level"`
 				Format string `yaml:"format"`
 			} `yaml:"log"`
 			Host        string `yaml:"host"`
 			Port        string `yaml:"port"`
 			StringValue string `yaml:"string_test"`
+			Debug       bool   `yaml:"debug"`
 			BoolValue   bool   `yaml:"bool_test"`
 		}
 
-		config := &cfg{}
-		err = yaml.Unmarshal(configBytes, &config)
+		exp := &cfg{}
+		err = yaml.Unmarshal(configBytes, &exp)
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
@@ -46,11 +51,71 @@ func TestReadConfigs(t *testing.T) {
 			BoolValue:   false,
 		}
 
-		assert.EqualValues(t, refConfig, config)
+		assert.EqualValues(t, refConfig, exp)
 	})
+
+	t.Run("Success parsing merging many config files in default and one file in stage", func(t *testing.T) {
+		t.Parallel()
+		tStage := tests.NewTestStage("local")
+		configBytes, err := config.Read(tStage, "./config_examples/configuration", false)
+		if !assert.NoError(t, err) {
+			t.FailNow()
+		}
+
+		type cfg struct {
+			Redis struct {
+				Hostname string `yaml:"hostname"`
+				Password string `yaml:"password"`
+				Database int    `yaml:"database"`
+				Port     int    `yaml:"port"`
+			} `yaml:"redis"`
+			Log struct {
+				Level  string `yaml:"level"`
+				Format string `yaml:"format"`
+			} `yaml:"log"`
+			Host        string `yaml:"host"`
+			Port        string `yaml:"port"`
+			StringValue string `yaml:"string_test"`
+			Debug       bool   `yaml:"debug"`
+			BoolValue   bool   `yaml:"bool_test"`
+		}
+
+		exp := &cfg{}
+		err = yaml.Unmarshal(configBytes, &exp)
+		if !assert.NoError(t, err) {
+			t.FailNow()
+		}
+
+		refConfig := &cfg{
+			Debug: true,
+			Redis: struct {
+				Hostname string `yaml:"hostname"`
+				Password string `yaml:"password"`
+				Database int    `yaml:"database"`
+				Port     int    `yaml:"port"`
+			}{
+				Hostname: "127.1.1.1",
+				Password: "very-very-secure-password-with-a-lot-of-words-to-make-sure-that-it-length-is-more-than-100-chars-length",
+				Database: 123,
+				Port:     321,
+			},
+			Log: struct {
+				Level  string `yaml:"level"`
+				Format string `yaml:"format"`
+			}{Level: "debug", Format: "русский мат"},
+			Host:        "0.0.0.0",
+			Port:        "6666",
+			StringValue: "not a simple string",
+			BoolValue:   false,
+		}
+
+		assert.EqualValues(t, refConfig, exp)
+	})
+
 	t.Run("Success parsing common dirs and files with different stages", func(t *testing.T) {
-		os.Setenv("STAGE", "prod")
-		configBytes, err := ReadConfigs("./config_examples/configuration")
+		t.Parallel()
+		tStage := tests.NewTestStage("prod")
+		configBytes, err := config.Read(tStage, "./config_examples/configuration", false)
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
@@ -65,8 +130,8 @@ func TestReadConfigs(t *testing.T) {
 			Port string `yaml:"port"`
 		}
 
-		config := &cfg{}
-		err = yaml.Unmarshal(configBytes, &config)
+		exp := &cfg{}
+		err = yaml.Unmarshal(configBytes, &exp)
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
@@ -81,18 +146,20 @@ func TestReadConfigs(t *testing.T) {
 			Port: "8888",
 		}
 
-		assert.EqualValues(t, refConfig, config)
+		assert.EqualValues(t, refConfig, exp)
 	})
+
 	t.Run("Success parsing complex dirs and files", func(t *testing.T) {
-		os.Setenv("STAGE", "development")
-		configBytes, err := ReadConfigs("./config_examples/configuration2")
+		t.Parallel()
+		tStage := tests.NewTestStage("development")
+		configBytes, err := config.Read(tStage, "./config_examples/configuration2", false)
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
 
 		type hbParams struct {
 			AreaMapping map[string]string `yaml:"area_mapping"`
-			Url         string            `yaml:"url"`
+			URL         string            `yaml:"url"`
 			Username    string            `yaml:"username"`
 			Password    string            `yaml:"password"`
 		}
@@ -111,8 +178,8 @@ func TestReadConfigs(t *testing.T) {
 			} `yaml:"databases"`
 		}
 
-		config := &cfg{}
-		err = yaml.Unmarshal(configBytes, &config)
+		exp := &cfg{}
+		err = yaml.Unmarshal(configBytes, &exp)
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
@@ -120,7 +187,7 @@ func TestReadConfigs(t *testing.T) {
 		refConfig := &cfg{
 			HotelbookParams: hbParams{
 				AreaMapping: map[string]string{"KRK": "Krakow", "MSK": "Moscow", "CHB": "Челябинск"},
-				Url:         "https://hotelbook.com/xml_endpoint",
+				URL:         "https://hotelbook.com/xml_endpoint",
 				Username:    "TESt_USERNAME",
 				Password:    "PASSWORD",
 			},
@@ -144,12 +211,13 @@ func TestReadConfigs(t *testing.T) {
 			}{Username: "R_USER", Password: "R_PASS"}}},
 		}
 
-		assert.EqualValues(t, refConfig, config)
+		assert.EqualValues(t, refConfig, exp)
 	})
 
 	t.Run("Success parsing symlinked files and dirs", func(t *testing.T) {
-		os.Setenv("STAGE", "dev")
-		configBytes, err := ReadConfigs("./config_examples/symnlinkedConfigs")
+		t.Parallel()
+		tStage := tests.NewTestStage("dev")
+		configBytes, err := config.Read(tStage, "./config_examples/symnlinkedConfigs", false)
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
@@ -164,8 +232,8 @@ func TestReadConfigs(t *testing.T) {
 			Port string `yaml:"port"`
 		}
 
-		config := &cfg{}
-		err = yaml.Unmarshal(configBytes, &config)
+		exp := &cfg{}
+		err = yaml.Unmarshal(configBytes, &exp)
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
@@ -180,13 +248,14 @@ func TestReadConfigs(t *testing.T) {
 			Port: "8888",
 		}
 
-		assert.EqualValues(t, refConfig, config)
+		assert.EqualValues(t, refConfig, exp)
 	})
 
-	if GetEnv("IN_CONTAINER", "") == "true" {
+	if os.Getenv("IN_CONTAINER") == "true" {
 		t.Run("Success parsing symlinked files and dirs in root", func(t *testing.T) {
-			os.Setenv("STAGE", "dev")
-			configBytes, err := ReadConfigs("/cfgs")
+			t.Parallel()
+			tStage := tests.NewTestStage("dev")
+			configBytes, err := config.Read(tStage, "/cfgs", false)
 			if !assert.NoError(t, err) {
 				t.FailNow()
 			}
@@ -201,8 +270,8 @@ func TestReadConfigs(t *testing.T) {
 				Port string `yaml:"port"`
 			}
 
-			config := &cfg{}
-			err = yaml.Unmarshal(configBytes, &config)
+			exp := &cfg{}
+			err = yaml.Unmarshal(configBytes, &exp)
 			if !assert.NoError(t, err) {
 				t.FailNow()
 			}
@@ -217,42 +286,33 @@ func TestReadConfigs(t *testing.T) {
 				Port: "8888",
 			}
 
-			assert.EqualValues(t, refConfig, config)
+			assert.EqualValues(t, refConfig, exp)
 		})
 	}
 
 	t.Run("Fail dir not found", func(t *testing.T) {
-		_, err := ReadConfigs("")
+		t.Parallel()
+		tStage := tests.NewTestStage("dev")
+		_, err := config.Read(tStage, "", false)
 		if !assert.Error(t, err) {
 			t.FailNow()
 		}
 	})
-	t.Run("no defaults configs", func(t *testing.T) {
-		_, err := ReadConfigs("./config_examples/no_defaults")
-		if !assert.Error(t, err) {
-			t.FailNow()
-		}
-	})
-	t.Run("merge errors", func(t *testing.T) {
-		_, err := ReadConfigs("./config_examples/merge_error")
-		if !assert.Error(t, err) {
-			t.FailNow()
-		}
-	})
-}
 
-func TestGetEnv(t *testing.T) {
-	t.Run("get env key value", func(t *testing.T) {
-		os.Setenv("KEY", "VALUE")
-		val := GetEnv("KEY", "")
-		if !assert.Equal(t, "VALUE", val) {
+	t.Run("no defaults configs", func(t *testing.T) {
+		t.Parallel()
+		tStage := tests.NewTestStage("dev")
+		_, err := config.Read(tStage, "./config_examples/no_defaults", false)
+		if !assert.Error(t, err) {
 			t.FailNow()
 		}
 	})
-	t.Run("get env key value fallback", func(t *testing.T) {
-		os.Setenv("KEY", "VALUE")
-		val := GetEnv("KEY2", "")
-		if !assert.Equal(t, "", val) {
+
+	t.Run("merge errors", func(t *testing.T) {
+		t.Parallel()
+		tStage := tests.NewTestStage("dev")
+		_, err := config.Read(tStage, "./config_examples/merge_error", false)
+		if !assert.Error(t, err) {
 			t.FailNow()
 		}
 	})
