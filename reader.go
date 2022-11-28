@@ -18,6 +18,13 @@ var ErrNoDefaults = errors.New("no default config")
 
 const defaultConfigPath = "./configuration"
 
+var ErrDeprecatedMethod = errors.New("function ReadConfigs(cfgPath) was deprecated, use Read(stage, cfgPath, verbose) instead")
+
+//ReadConfigs deprecated
+func ReadConfigs(_ string) ([]byte, error) {
+	return nil, ErrDeprecatedMethod
+}
+
 // Read Reads yaml files from configuration directory with sub folders
 // as application stage and merges config files in one configuration per stage.
 func Read(stageI stage.Interface, cfgPath string, verbose bool) ([]byte, error) {
