@@ -1,13 +1,15 @@
 package config_test
 
 import (
+	"context"
 	"os"
 	"testing"
 
 	config "github.com/spacetab-io/configuration-go"
 	"github.com/spacetab-io/configuration-go/tests"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v2"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
 
 func TestReadConfigs(t *testing.T) {
@@ -16,16 +18,16 @@ func TestReadConfigs(t *testing.T) {
 	t.Run("Success parsing common dirs and files", func(t *testing.T) {
 		t.Parallel()
 		tStage := tests.NewTestStage("dev")
-		configBytes, err := config.Read(tStage, "./config_examples/configuration", false)
-		if !assert.NoError(t, err) {
-			t.FailNow()
+		configBytes, err := config.Read(context.TODO(), tStage, config.WithConfigPath("./config_examples/configuration"))
+		require.NoError(t, err)
+
+		type logCfg struct {
+			Level  string `yaml:"level"`
+			Format string `yaml:"format"`
 		}
 
 		type cfg struct {
-			Log struct {
-				Level  string `yaml:"level"`
-				Format string `yaml:"format"`
-			} `yaml:"log"`
+			Log         logCfg `yaml:"log"`
 			Host        string `yaml:"host"`
 			Port        string `yaml:"port"`
 			StringValue string `yaml:"string_test"`
@@ -33,13 +35,10 @@ func TestReadConfigs(t *testing.T) {
 			BoolValue   bool   `yaml:"bool_test"`
 		}
 
-		exp := &cfg{}
-		err = yaml.Unmarshal(configBytes, &exp)
-		if !assert.NoError(t, err) {
-			t.FailNow()
-		}
+		var exp cfg
+		require.NoError(t, yaml.Unmarshal(configBytes, &exp))
 
-		refConfig := &cfg{
+		refConfig := cfg{
 			Debug: true,
 			Log: struct {
 				Level  string `yaml:"level"`
@@ -57,7 +56,7 @@ func TestReadConfigs(t *testing.T) {
 	t.Run("Success parsing merging many config files in default and one file in stage", func(t *testing.T) {
 		t.Parallel()
 		tStage := tests.NewTestStage("local")
-		configBytes, err := config.Read(tStage, "./config_examples/configuration", false)
+		configBytes, err := config.Read(context.TODO(), tStage, config.WithConfigPath("./config_examples/configuration"))
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
@@ -115,7 +114,7 @@ func TestReadConfigs(t *testing.T) {
 	t.Run("Success parsing common dirs and files with different stages", func(t *testing.T) {
 		t.Parallel()
 		tStage := tests.NewTestStage("prod")
-		configBytes, err := config.Read(tStage, "./config_examples/configuration", false)
+		configBytes, err := config.Read(context.TODO(), tStage, config.WithConfigPath("./config_examples/configuration"))
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
@@ -152,7 +151,7 @@ func TestReadConfigs(t *testing.T) {
 	t.Run("Success parsing complex dirs and files", func(t *testing.T) {
 		t.Parallel()
 		tStage := tests.NewTestStage("development")
-		configBytes, err := config.Read(tStage, "./config_examples/configuration2", false)
+		configBytes, err := config.Read(context.TODO(), tStage, config.WithConfigPath("./config_examples/configuration2"))
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
@@ -217,7 +216,7 @@ func TestReadConfigs(t *testing.T) {
 	t.Run("Success parsing symlinked files and dirs", func(t *testing.T) {
 		t.Parallel()
 		tStage := tests.NewTestStage("dev")
-		configBytes, err := config.Read(tStage, "./config_examples/symnlinkedConfigs", false)
+		configBytes, err := config.Read(context.TODO(), tStage, config.WithConfigPath("./config_examples/symnlinkedConfigs"))
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
@@ -232,13 +231,13 @@ func TestReadConfigs(t *testing.T) {
 			Port string `yaml:"port"`
 		}
 
-		exp := &cfg{}
+		var exp cfg
 		err = yaml.Unmarshal(configBytes, &exp)
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
 
-		refConfig := &cfg{
+		refConfig := cfg{
 			Debug: true,
 			Log: struct {
 				Level  string `yaml:"level"`
@@ -255,7 +254,7 @@ func TestReadConfigs(t *testing.T) {
 		t.Run("Success parsing symlinked files and dirs in root", func(t *testing.T) {
 			t.Parallel()
 			tStage := tests.NewTestStage("dev")
-			configBytes, err := config.Read(tStage, "/cfgs", false)
+			configBytes, err := config.Read(context.TODO(), tStage, config.WithConfigPath("/cfgs"))
 			if !assert.NoError(t, err) {
 				t.FailNow()
 			}
@@ -293,7 +292,7 @@ func TestReadConfigs(t *testing.T) {
 	t.Run("Fail dir not found", func(t *testing.T) {
 		t.Parallel()
 		tStage := tests.NewTestStage("dev")
-		_, err := config.Read(tStage, "", false)
+		_, err := config.Read(context.TODO(), tStage, config.WithConfigPath(""))
 		if !assert.Error(t, err) {
 			t.FailNow()
 		}
@@ -302,7 +301,7 @@ func TestReadConfigs(t *testing.T) {
 	t.Run("no defaults configs", func(t *testing.T) {
 		t.Parallel()
 		tStage := tests.NewTestStage("dev")
-		_, err := config.Read(tStage, "./config_examples/no_defaults", false)
+		_, err := config.Read(context.TODO(), tStage, config.WithConfigPath("/config_examples/no_defaults"))
 		if !assert.Error(t, err) {
 			t.FailNow()
 		}
@@ -311,7 +310,7 @@ func TestReadConfigs(t *testing.T) {
 	t.Run("merge errors", func(t *testing.T) {
 		t.Parallel()
 		tStage := tests.NewTestStage("dev")
-		_, err := config.Read(tStage, "./config_examples/merge_error", false)
+		_, err := config.Read(context.TODO(), tStage, config.WithConfigPath("/config_examples/merge_error"))
 		if !assert.Error(t, err) {
 			t.FailNow()
 		}

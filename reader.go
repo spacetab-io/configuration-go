@@ -1,137 +1,152 @@
 package config
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	logs "log"
 	"os"
 	"path/filepath"
-	"strings"
 
-	"github.com/imdario/mergo"
-	"github.com/spacetab-io/configuration-go/stage"
-	"gopkg.in/yaml.v2"
+	"dario.cat/mergo"
+	"gopkg.in/yaml.v3"
 )
 
 var ErrNoDefaults = errors.New("no default config")
 
-const defaultConfigPath = "./configuration"
+var (
+	ErrMergingError = errors.New("merging with defaults error")
+)
 
 // Read Reads yaml files from configuration directory with sub folders
 // as application stage and merges config files in one configuration per stage.
-func Read(stageI stage.Interface, cfgPath string, verbose bool) ([]byte, error) {
-	cfgPath, err := checkConfigPath(cfgPath)
+func Read(ctx context.Context, stage Stageable, opts ...Option) ([]byte, error) {
+	mc, err := newMerger(append(opts, withStageName(stage))...)
 	if err != nil {
 		return nil, err
 	}
 
-	if verbose {
-		log("Current stage: `%s`", stageI.String())
-		log("Config path: `%v`", cfgPath)
+	mc.logger.Debug(ctx, "Current stage", mc.stage.Name().String())
+	mc.logger.Debug(ctx, "Config path", mc.cfgPath)
+
+	if err = mc.getFileList(); err != nil {
+		mc.logger.Error(ctx, "get file list error", err)
+
+		return nil, err
 	}
 
-	fileList := getFileList(stageI, cfgPath)
-
 	// check defaults config existence. Fall down if not
-	if _, ok := fileList[stage.Defaults]; !ok || len(fileList[stage.Defaults]) == 0 {
-		log("defaults config is not found in file list `%+v`! Fall down.", fileList)
+	if !mc.defaultConfigExists() {
+		mc.logger.Error(ctx, "defaults config is not found in file list! Fall down.", mc.fileList)
 
 		return nil, ErrNoDefaults
 	}
 
-	if verbose {
-		log("Existing config list: %+v", fileList)
-	}
+	mc.logger.Debug(ctx, "Existing config list", mc.fileList)
 
-	fileListResult := make(map[stage.Name][]string)
-	configs := make(map[stage.Name]map[string]interface{})
+	fileListResult := make(map[StageName][]string)
 
-	for folder, files := range fileList {
+	for stageName, files := range mc.fileList {
 		for _, file := range files {
-			fullFilePath := cfgPath + "/" + folder.String() + "/" + file
+			var configBytes []byte
 
-			configBytes, err := ioutil.ReadFile(fullFilePath)
+			configBytes, err = os.ReadFile(file)
 			if err != nil {
-				log("%s %s config read fail! Fall down.", folder, file)
+				mc.logger.Error(ctx, "Config read fail! Fall down.", stageName, file)
 
-				return nil, fmt.Errorf("config file `%s` read fail: %w", fullFilePath, err)
+				return nil, fmt.Errorf("config file `%s` read fail: %w", file, err)
 			}
 
-			var configFromFile map[stage.Name]map[string]interface{}
+			var configFromFile map[StageName]map[string]any
 
-			if verbose {
-				log("file `%s` content: \n%v", fullFilePath, string(configBytes))
+			mc.logger.Debug(ctx, "file content", file, string(configBytes))
+
+			if err = yaml.Unmarshal(configBytes, &configFromFile); err != nil {
+				mc.logger.Error(ctx, "config read fail! Fall down.", stageName, file)
+
+				return nil, fmt.Errorf("config file `%s` unmarshal fail: %w", file, err)
 			}
 
-			if err := yaml.Unmarshal(configBytes, &configFromFile); err != nil {
-				log("%s %s config read fail! Fall down.", folder, file)
-
-				return nil, fmt.Errorf("config file `%s` unmarshal fail: %w", fullFilePath, err)
-			}
-
-			if _, ok := configFromFile[folder]; !ok {
-				log("WARN! File `%s` excluded from `%s` (it is not for this stage)!", file, folder)
+			if _, ok := configFromFile[stageName]; !ok {
+				mc.logger.Warn(ctx, "File excluded from current stage (it is not for this stage)!", file, stageName)
 
 				continue
 			}
 
-			if _, ok := configs[folder]; !ok {
-				configs[folder] = configFromFile[folder]
+			cc, ok := mc.getConfigForStage(stageName)
+			if !ok {
+				mc.setConfigForStage(stageName, configFromFile[stageName])
+				cc, _ = mc.getConfigForStage(stageName)
 			}
 
-			cc := configs[folder]
+			if err = mergo.Merge(
+				&cc,
+				configFromFile[stageName],
+			); err != nil {
+				mc.logger.Error(ctx, "config merge fail! Fall down.", stageName, file)
 
-			err = mergo.Merge(&cc, configFromFile[folder], mergo.WithOverwriteWithEmptyValue)
-			if err != nil {
-				log("%s %s config merge fail! Fall down.", folder, file)
-
-				return nil, fmt.Errorf("merging configs[%s] with configFromFile[%s] config fail: %w", folder, folder, err)
+				return nil, fmt.Errorf("merging configs[%s] with configFromFile[%s] config fail: %w", stageName, stageName, err)
 			}
 
-			configs[folder] = cc
+			mc.setConfigForStage(stageName, cc)
 
-			fileListResult[folder] = append(fileListResult[folder], file)
+			fileListResult[stageName] = append(fileListResult[stageName], file)
 		}
 	}
 
-	if verbose {
-		log("Parsed config list: `%+v`", fileListResult)
-	}
+	mc.logger.Debug(ctx, "Parsed config list", fileListResult)
 
-	config := configs[stage.Defaults]
-
-	if c, ok := configs[stageI.Get()]; ok {
-		if err := mergo.Merge(&config, c, mergo.WithOverwriteWithEmptyValue); err != nil {
-			log("merging with defaults error")
-
-			return nil, fmt.Errorf("merging with defaults error: %w", err)
-		}
-
-		log("Stage `%s` config is loaded and merged with `defaults`", stageI.String())
-	}
-
-	if verbose {
-		log("final config:\n%+v", config)
-	}
-
-	return yaml.Marshal(config)
+	return mc.getResultConfigForStage(ctx)
 }
 
-func getFileList(stageI stage.Interface, cfgPath string) map[stage.Name][]string {
-	var (
-		fileList = map[stage.Name][]string{}
-		stageDir string
-	)
+func (mc *merger) getResultConfigForStage(ctx context.Context) ([]byte, error) {
+	resultConfig, ok := mc.getConfigForStage(StageNameDefaults)
+	if !ok {
+		return nil, ErrNoDefaults
+	}
 
-	_ = filepath.Walk(cfgPath, func(path string, f os.FileInfo, err error) error {
-		if cfgPath == path {
+	if cfg, ok := mc.getConfigForStage(mc.stage.Name()); ok {
+		if err := mergo.Merge(&resultConfig, cfg, mergo.WithOverride); err != nil {
+			mc.logger.Error(ctx, "merging with defaults error: %s", err)
+
+			return nil, fmt.Errorf("%w: %w", ErrMergingError, err)
+		}
+
+		mc.logger.Debug(ctx, "Stage config is loaded and merged with `defaults`", mc.stage.Name().String())
+	}
+
+	mc.logger.Debug(ctx, "final config", resultConfig)
+
+	return yaml.Marshal(resultConfig)
+}
+
+func (mc *merger) getConfigForStage(stage StageName) (map[string]any, bool) {
+	mc.mu.RLock()
+	defer mc.mu.RUnlock()
+
+	if len(mc.configs[stage]) == 0 {
+		return nil, false
+	}
+
+	cfg := make(map[string]any, len(mc.configs[stage]))
+	for key, val := range mc.configs[stage] {
+		cfg[key] = val
+	}
+
+	return cfg, true
+
+}
+
+func (mc *merger) getFileList() error {
+	var stageDir StageName
+
+	return filepath.Walk(mc.cfgPath, func(path string, f os.FileInfo, err error) error {
+		if mc.cfgPath == path {
 			return nil
 		}
 
 		if f.IsDir() {
-			if stageDir == "" || f.Name() == stage.Defaults.String() || f.Name() == stageI.String() {
-				stageDir = f.Name()
+			if stageDir.String() == "" || f.Name() == StageNameDefaults.String() || mc.stage.Name().String() == f.Name() {
+				stageDir = NewStageNameUnsafe(f.Name())
 
 				return nil
 			}
@@ -139,31 +154,47 @@ func getFileList(stageI stage.Interface, cfgPath string) map[stage.Name][]string
 			return filepath.SkipDir
 		}
 
-		if filepath.Ext(f.Name()) == ".yaml" && (stageDir == stage.Defaults.String() || stageDir == stageI.String()) {
-			fileList[stage.Name(stageDir)] = append(fileList[stage.Name(stageDir)], f.Name())
+		if fileIsYaml(f.Name()) && (stageDir.isDefault() || mc.isSpecifiedStage(stageDir)) {
+			mc.addFileToStage(stageDir, f.Name())
 		}
 
 		return nil
 	})
-
-	return fileList
 }
 
-func checkConfigPath(cfgPath string) (string, error) {
-	if cfgPath == "" {
-		cfgPath = defaultConfigPath
-	}
-
-	cfgPath = strings.TrimRight(cfgPath, "/")
-
-	if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
-		return cfgPath, fmt.Errorf("config path error: %w", err)
-	}
-
-	return cfgPath, nil
+func fileIsYaml(name string) bool {
+	return filepath.Ext(name) == ".yaml" || filepath.Ext(name) == ".yml"
 }
 
-// log Logs in stdout when quiet mode is off.
-func log(pattern string, args ...interface{}) {
-	logs.Printf("[config] "+pattern+"\n", args...)
+func (mc *merger) isSpecifiedStage(stage StageName) bool {
+	return mc.stage.Name() == stage
+}
+
+func (mc *merger) addFileToStage(stage StageName, file string) {
+	fileList, ok := mc.fileList[stage]
+	if !ok || len(fileList) == 0 {
+		fileList = make([]string, 0, 1)
+	}
+
+	file = mc.cfgPath + "/" + stage.String() + "/" + file
+
+	fileList = append(fileList, file)
+
+	mc.fileList[stage] = fileList
+}
+
+func (mc *merger) defaultConfigExists() bool {
+	defaultConfig, ok := mc.fileList[StageNameDefaults]
+	if !ok || len(defaultConfig) == 0 {
+		return false
+	}
+
+	return true
+}
+
+func (mc *merger) setConfigForStage(stageName StageName, cfg map[string]any) {
+	mc.mu.Lock()
+	defer mc.mu.Unlock()
+
+	mc.configs[stageName] = cfg
 }

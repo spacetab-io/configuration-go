@@ -1,12 +1,13 @@
 package thedeepest_test
 
 import (
+	"context"
 	"testing"
 
 	config "github.com/spacetab-io/configuration-go"
 	"github.com/spacetab-io/configuration-go/tests"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 func TestRelativePath(t *testing.T) {
@@ -14,7 +15,7 @@ func TestRelativePath(t *testing.T) {
 	t.Run("Success parsing relative dirs", func(t *testing.T) {
 		t.Parallel()
 		tStage := tests.NewTestStage("dev")
-		configBytes, err := config.Read(tStage, "../../../../config_examples/configuration", false)
+		configBytes, err := config.Read(context.TODO(), tStage, config.WithConfigPath("../../../../config_examples/configuration"))
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}

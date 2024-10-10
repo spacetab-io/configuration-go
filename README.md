@@ -1,7 +1,7 @@
 Golang Microservice configuration module
 ----------------------------------------
 
-[![CircleCI](https://circleci.com/gh/spacetab-io/configuration-go.svg?style=shield)](https://circleci.com/gh/spacetab-io/configuration-go) [![codecov](https://codecov.io/gh/spacetab-io/configuration-go/graph/badge.svg)](https://codecov.io/gh/spacetab-io/configuration-go)
+[![codecov](https://codecov.io/gh/spacetab-io/configuration-go/graph/badge.svg)](https://codecov.io/gh/spacetab-io/configuration-go)
 
 Configuration module for microservices written on Go.
 Preserves [corporate standards for services configuration](https://confluence.teamc.io/pages/viewpage.action?pageId=4227704).
@@ -25,7 +25,7 @@ Some agreements:
 
 1. Configuration must be declared as struct and reveals yaml structure
 2. Default config folder: `./configuration`. If you need to override, pass your path in `ReadConfig` function
-3. Stage is passed as `stage.Interface` implementation. In example below stageEnv is used to pass stage through env variable `STAGE`.
+3. Stage is passed as `config.Stageable` implementation. In example below stageEnv is used to pass stage through env variable `STAGE`.
 
 Code example:
 
@@ -33,12 +33,13 @@ Code example:
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
 	config "github.com/spacetab-io/configuration-go"
 	"github.com/spacetab-io/configuration-go/stage"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // ConfigStruct is your app config structure. This must be related to yaml config file structure. 
@@ -68,17 +69,17 @@ type ConfigStruct struct {
 }
 
 func main() {
-	// config.Read receives stage as stage.Interface implementation.
+	// config.Read receives stage as config.Stageable implementation.
 	// You can use envStage to pass stage name via ENV param STAGE.
 	// In NewEnvStage you can pass fallback value if STAGE param is empty.
-	envStage := stage.NewEnvStage("development")
+	envStage := config.NewEnvStage("development")
 	// Reading ALL config files in defaults configuration folder and recursively merge them with STAGE configs
-	configBytes, err := config.Read(envStage, "./configuration", true)
+	configBytes, err := config.Read(context.TODO(), envStage, config.WithConfigPath("./configuration"))
 	if err != nil {
 		log.Fatalf("config reading error: %+v", err)
 	}
 
-	cfg := ConfigStruct{}
+	var cfg ConfigStruct
 	// unmarshal config into Config structure 
 	err = yaml.Unmarshal(configBytes, &cfg)
 	if err != nil {
@@ -93,7 +94,7 @@ func main() {
 
 The MIT License
 
-Copyright © 2021 SpaceTab.io, Inc. https://spacetab.io
+Copyright © 2024 SpaceTab.io, Inc. https://spacetab.io
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "
 Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish,

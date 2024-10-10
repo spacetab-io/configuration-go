@@ -1,21 +1,17 @@
 package tests
 
 import (
-	"github.com/spacetab-io/configuration-go/stage"
+	"github.com/spacetab-io/configuration-go"
 )
 
 type TestStage struct {
-	name stage.Name
+	name config.StageName
 }
 
-func (ts TestStage) Get() stage.Name {
+func (ts TestStage) Name() config.StageName {
 	return ts.name
 }
 
-func (ts TestStage) String() string {
-	return string(ts.name)
-}
-
-func NewTestStage(stageName string) stage.Interface {
-	return TestStage{name: stage.Name(stageName)}
+func NewTestStage(stageName string) config.Stageable {
+	return TestStage{name: config.StageName(stageName)}
 }

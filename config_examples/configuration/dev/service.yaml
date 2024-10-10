@@ -1,4 +1,4 @@
 dev:
   debug: true
-  string_test: null
+  string_test: ""
   bool_test: false
